@@ -44,11 +44,14 @@ const sendOtp = async (req, res) => {
       user = new User({ phone });
     }
 
+    // Google Play reviewer test account: fixed OTP, no SMS sent, never expires
+    const isReviewAccount = phone === process.env.REVIEW_TEST_PHONE;
+
     // Check rate limiting (max 3 OTPs per 10 minutes)
-    if (user.otp && user.otp.expiresAt) {
+    if (!isReviewAccount && user.otp && user.otp.expiresAt) {
       const timeSinceLastOtp = Date.now() - (user.otp.expiresAt.getTime() - 5 * 60 * 1000);
       if (timeSinceLastOtp < 60000) { // Less than 1 minute since last OTP
-        return res.status(429).json({ 
+        return res.status(429).json({
           error: 'Please wait before requesting another OTP',
           retryAfter: Math.ceil((60000 - timeSinceLastOtp) / 1000),
         });
@@ -56,16 +59,18 @@ const sendOtp = async (req, res) => {
     }
 
     // Generate and save OTP
-    const otp = twilioService.generateOtp();
+    const otp = isReviewAccount ? process.env.REVIEW_TEST_OTP : twilioService.generateOtp();
     user.otp = {
       code: otp,
-      expiresAt: twilioService.getExpiryDate(),
+      expiresAt: isReviewAccount ? new Date('2099-12-31') : twilioService.getExpiryDate(),
       attempts: 0,
     };
     await user.save();
 
-    // Send OTP via SMS
-    const result = await twilioService.sendOtp(phone, otp);
+    // Send OTP via SMS (skip for the Play Store reviewer test account)
+    const result = isReviewAccount
+      ? { success: true, messageId: 'review-account' }
+      : await twilioService.sendOtp(phone, otp);
 
     if (!result.success) {
       return res.status(500).json({ error: 'Failed to send OTP' });
