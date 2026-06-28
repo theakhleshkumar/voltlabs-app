@@ -1,4 +1,4 @@
-package com.voltlabsapp;
+package com.codemagnet.voltlabs;
 
 import androidx.annotation.NonNull;
 

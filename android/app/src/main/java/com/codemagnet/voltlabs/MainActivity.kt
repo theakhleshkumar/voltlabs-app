@@ -1,4 +1,4 @@
-package com.voltlabsapp
+package com.codemagnet.voltlabs
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

@@ -1,4 +1,4 @@
-package com.voltlabsapp
+package com.codemagnet.voltlabs
 
 import android.app.Application
 import com.facebook.react.PackageList

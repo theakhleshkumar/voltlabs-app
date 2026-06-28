@@ -8,3 +8,11 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# react-native-ble-plx is built on RxJava2 + RxAndroidBle, which rely on
+# reflection-based plugin/error-handler hooks that R8 can strip, breaking
+# BLE device provisioning at runtime.
+-dontwarn io.reactivex.**
+-keep class io.reactivex.** { *; }
+-dontwarn com.polidea.rxandroidble2.**
+-keep class com.polidea.rxandroidble2.** { *; }
