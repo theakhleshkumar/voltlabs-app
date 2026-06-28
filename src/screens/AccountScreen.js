@@ -8,12 +8,15 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { useDeviceStatus } from '../context/DeviceStatusContext';
 import api from '../services/api';
 import { showToast } from '../components/Toast';
 import { colors, fonts } from '../constants/theme';
+
+const PRIVACY_POLICY_URL = 'https://theakhleshkumar.github.io/voltlabs-app/privacy-policy.html';
 
 const AccountScreen = () => {
   const { user, logout } = useAuth();
@@ -134,6 +137,13 @@ const AccountScreen = () => {
         )}
       </TouchableOpacity>
 
+      <TouchableOpacity
+        style={styles.linkRow}
+        onPress={() => Linking.openURL(PRIVACY_POLICY_URL)}
+      >
+        <Text style={styles.linkText}>Privacy Policy</Text>
+      </TouchableOpacity>
+
       <View style={styles.dangerSection}>
         <Text style={styles.dangerSectionTitle}>Danger Zone</Text>
         <TouchableOpacity
@@ -231,6 +241,15 @@ const styles = StyleSheet.create({
     fontFamily: fonts.semiBold,
     color: colors.error,
     fontSize: 16,
+  },
+  linkRow: {
+    marginTop: 24,
+    paddingVertical: 8,
+  },
+  linkText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 15,
+    color: colors.primary,
   },
   dangerSection: {
     marginTop: 40,
