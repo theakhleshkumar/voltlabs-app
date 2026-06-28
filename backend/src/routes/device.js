@@ -32,7 +32,7 @@ router.get('/', authMiddleware, async (req, res) => {
  */
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { deviceId, name, type, wifi } = req.body;
+    const { deviceId, name, type, wifi, mqttSecret } = req.body;
 
     if (!deviceId) {
       return res.status(400).json({ error: 'Device ID is required' });
@@ -40,23 +40,19 @@ router.post('/', authMiddleware, async (req, res) => {
 
     // Check if device already exists
     let device = await Device.findOne({ deviceId });
-    
+
     if (device) {
       // Device exists - check if same owner
       if (device.owner.toString() !== req.userId.toString()) {
         return res.status(400).json({ error: 'Device already registered to another user' });
       }
       // Update existing device
-      if (name) {
-        device.name = name;
-        // Update MQTT topic to match device name (ESP32 publishes to voltlabs/{deviceName}/status)
-        device.mqttTopic = `voltlabs/${name}/status`;
-      }
+      if (name) device.name = name;
       if (wifi) device.wifi = wifi;
+      if (mqttSecret) device.mqttSecret = mqttSecret;
       await device.save();
     } else {
       // Create new device
-      // Use name for MQTT topic since ESP32 publishes to voltlabs/{deviceName}/status
       const deviceName = name || 'Smart Lamp';
       device = new Device({
         deviceId,
@@ -64,7 +60,7 @@ router.post('/', authMiddleware, async (req, res) => {
         type: type || 'lamp',
         owner: req.userId,
         wifi,
-        mqttTopic: `voltlabs/${deviceName}/status`,
+        mqttSecret,
       });
       await device.save();
 
@@ -83,6 +79,7 @@ router.post('/', authMiddleware, async (req, res) => {
         type: device.type,
         status: device.status,
         mqttTopic: device.mqttTopic,
+        mqttSecret: device.mqttSecret,
       },
     });
   } catch (error) {

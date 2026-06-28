@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { fonts } from '../constants/theme';
 
 const AddDeviceScreen = ({ navigation }) => {
   return (
@@ -33,12 +34,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 28,
-    fontWeight: 'bold',
     marginBottom: 16,
     textAlign: 'center',
   },
   description: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
@@ -52,9 +54,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   buttonText: {
+    fontFamily: fonts.semiBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
 });
 

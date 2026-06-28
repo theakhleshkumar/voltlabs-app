@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import RootNavigator from './src/navigation/RootNavigator';
 import { DeviceStatusProvider } from './src/context/DeviceStatusContext';
 import { AuthProvider } from './src/context/AuthContext';
+import { ToastHost } from './src/components/Toast';
 
 // Error Boundary to prevent app crashes
 class ErrorBoundary extends React.Component {
@@ -84,13 +86,16 @@ const styles = StyleSheet.create({
 function App() {
   return (
     <ErrorBoundary>
-      <DeviceStatusProvider>
-        <AuthProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
-        </AuthProvider>
-      </DeviceStatusProvider>
+      <SafeAreaProvider>
+        <DeviceStatusProvider>
+          <AuthProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+            <ToastHost />
+          </AuthProvider>
+        </DeviceStatusProvider>
+      </SafeAreaProvider>
     </ErrorBoundary>
   );
 }

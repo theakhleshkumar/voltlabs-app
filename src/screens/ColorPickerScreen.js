@@ -10,12 +10,13 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Slider from '@react-native-community/slider';
 import ColorPicker from 'react-native-wheel-color-picker';
 import { useDeviceStatus } from '../hooks/useDeviceStatus';
+import { colors, fonts } from '../constants/theme';
+import { showToast } from '../components/Toast';
 
 // Quick preset colors
 const PRESET_COLORS = [
@@ -97,11 +98,11 @@ const ColorPickerScreen = ({ route }) => {
 
   const handleSaveColor = () => {
     if (savedColors.includes(selectedColor)) {
-      Alert.alert('Already Saved', 'This color is already in your favorites');
+      showToast('This color is already in your favorites');
       return;
     }
     if (savedColors.length >= 8) {
-      Alert.alert('Limit Reached', 'Remove a saved color to add a new one');
+      showToast('Remove a saved color to add a new one');
       return;
     }
     setSavedColors([...savedColors, selectedColor]);
@@ -124,7 +125,7 @@ const ColorPickerScreen = ({ route }) => {
     return (
       <View style={styles.container}>
         <View style={styles.disabledContainer}>
-          <Icon name="palette" size={80} color="#9CA3AF" />
+          <Icon name="palette" size={80} color={colors.textPlaceholder} />
           <Text style={styles.disabledTitle}>Colors</Text>
           <Text style={styles.disabledText}>
             Device offline - controls disabled
@@ -150,7 +151,7 @@ const ColorPickerScreen = ({ route }) => {
             <Icon 
               name="palette" 
               size={20} 
-              color={activeTab === 'color' ? '#FFC107' : '#9CA3AF'} 
+              color={activeTab === 'color' ? '#FFC107' : colors.textPlaceholder} 
             />
             <Text style={[styles.tabText, activeTab === 'color' && styles.tabTextActive]}>
               Color
@@ -163,7 +164,7 @@ const ColorPickerScreen = ({ route }) => {
             <Icon 
               name="thermometer" 
               size={20} 
-              color={activeTab === 'temp' ? '#FFC107' : '#9CA3AF'} 
+              color={activeTab === 'temp' ? '#FFC107' : colors.textPlaceholder} 
             />
             <Text style={[styles.tabText, activeTab === 'temp' && styles.tabTextActive]}>
               Temperature
@@ -177,7 +178,12 @@ const ColorPickerScreen = ({ route }) => {
             <View style={styles.previewCard}>
               <View style={[styles.colorPreview, { backgroundColor: selectedColor }]} />
               <Text style={styles.colorHex}>{selectedColor.toUpperCase()}</Text>
-              <TouchableOpacity style={styles.saveButton} onPress={handleSaveColor}>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSaveColor}
+                accessibilityRole="button"
+                accessibilityLabel="Save current color"
+              >
                 <Icon name="heart-outline" size={24} color="#FFC107" />
               </TouchableOpacity>
             </View>
@@ -211,6 +217,8 @@ const ColorPickerScreen = ({ route }) => {
                       { backgroundColor: preset.hex },
                     ]}
                     onPress={() => handlePresetColor(preset.hex)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Set color to ${preset.name}`}
                   >
                     {preset.hex === '#FFFFFF' && (
                       <View style={styles.whitePresetBorder} />
@@ -231,6 +239,8 @@ const ColorPickerScreen = ({ route }) => {
                       style={[styles.savedButton, { backgroundColor: color }]}
                       onPress={() => handlePresetColor(color)}
                       onLongPress={() => handleRemoveSavedColor(color)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Set saved color ${color}. Long press to remove`}
                     >
                       {selectedColor.toUpperCase() === color.toUpperCase() && (
                         <Icon name="check" size={20} color="#fff" />
@@ -318,7 +328,7 @@ const ColorPickerScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surface,
   },
   scrollView: {
     flex: 1,
@@ -334,14 +344,15 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   disabledTitle: {
+    fontFamily: fonts.bold,
     fontSize: 28,
-    fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     marginTop: 16,
   },
   disabledText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -371,9 +382,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF8E1',
   },
   tabText: {
+    fontFamily: fonts.semiBold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
   },
   tabTextActive: {
     color: '#FFC107',
@@ -397,13 +408,13 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 28,
     borderWidth: 3,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   colorHex: {
+    fontFamily: fonts.bold,
     flex: 1,
     fontSize: 20,
-    fontWeight: '700',
-    color: '#374151',
+    color: colors.textSecondary,
     marginLeft: 16,
   },
   saveButton: {
@@ -422,9 +433,9 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sectionTitle: {
+    fontFamily: fonts.bold,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#374151',
+    color: colors.textSecondary,
     marginBottom: 16,
   },
   colorPickerWrapper: {
@@ -471,7 +482,7 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 23,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
   },
   // Saved colors
   savedCard: {
@@ -502,8 +513,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   savedHint: {
+    fontFamily: fonts.regular,
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     marginTop: 12,
     textAlign: 'center',
   },
@@ -529,17 +541,18 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
     borderWidth: 4,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     marginBottom: 12,
   },
   tempValue: {
+    fontFamily: fonts.bold,
     fontSize: 32,
-    fontWeight: '700',
-    color: '#374151',
+    color: colors.textSecondary,
   },
   tempLabel: {
+    fontFamily: fonts.regular,
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textMuted,
     marginTop: 4,
   },
   tempSliderContainer: {
@@ -571,7 +584,7 @@ const styles = StyleSheet.create({
   },
   tempPresetButton: {
     width: '30%',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     alignItems: 'center',
@@ -587,20 +600,21 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 2,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     marginBottom: 8,
   },
   tempPresetText: {
+    fontFamily: fonts.semiBold,
     fontSize: 12,
-    fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
   },
   tempPresetTextActive: {
     color: '#FFC107',
   },
   tempPresetValue: {
+    fontFamily: fonts.regular,
     fontSize: 10,
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     marginTop: 2,
   },
 });

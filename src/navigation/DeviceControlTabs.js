@@ -5,40 +5,44 @@
 
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useDeviceStatus } from '../hooks/useDeviceStatus';
+import TabBarIcon from './TabBarIcon';
+import { colors, fonts } from '../constants/theme';
 
 import DeviceStatusScreen from '../screens/DeviceStatusScreen';
 import ColorPickerScreen from '../screens/ColorPickerScreen';
 import ScenesScreen from '../screens/ScenesScreen';
 import ScheduleScreen from '../screens/ScheduleScreen';
+import DeviceSettingsScreen from '../screens/DeviceSettingsScreen';
 
 const Tab = createBottomTabNavigator();
 
 const DeviceControlTabs = ({ route }) => {
-  const { deviceName } = route.params || {};
-  const { isOnline } = useDeviceStatus(deviceName);
-  
-  // Determine if tabs should be enabled (device is online)
-  const isEnabled = isOnline === true;
+  const { deviceName, deviceId } = route.params || {};
+  const { isOnline, power } = useDeviceStatus(deviceName);
+
+  // Colors/Scenes require the lamp to be powered on; Schedule only requires the device online
+  // (so a user can still schedule the lamp to turn ON while it's currently off)
+  const isEnabled = isOnline === true && power === true;
+  const isScheduleEnabled = isOnline === true;
 
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#FFC107',
-        tabBarInactiveTintColor: '#9CA3AF',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textPlaceholder,
         tabBarStyle: {
           backgroundColor: '#fff',
           borderTopWidth: 1,
-          borderTopColor: '#E5E7EB',
+          borderTopColor: colors.border,
           paddingTop: 8,
           paddingBottom: 8,
           height: 65,
         },
         tabBarLabelStyle: {
+          fontFamily: fonts.semiBold,
           fontSize: 12,
-          fontWeight: '600',
           marginTop: 2,
         },
       }}
@@ -46,11 +50,11 @@ const DeviceControlTabs = ({ route }) => {
       <Tab.Screen
         name="HomeTab"
         component={DeviceStatusScreen}
-        initialParams={{ deviceName }}
+        initialParams={{ deviceName, deviceId }}
         options={{
           tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="home" size={26} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="home" color={color} focused={focused} />
           ),
         }}
       />
@@ -60,8 +64,8 @@ const DeviceControlTabs = ({ route }) => {
         initialParams={{ deviceName, isOnline: isEnabled }}
         options={{
           tabBarLabel: 'Colors',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="palette" size={26} color={isEnabled ? color : '#D1D5DB'} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="palette" color={isEnabled ? color : colors.iconDisabled} focused={focused} />
           ),
         }}
         listeners={{
@@ -78,8 +82,8 @@ const DeviceControlTabs = ({ route }) => {
         initialParams={{ deviceName, isOnline: isEnabled }}
         options={{
           tabBarLabel: 'Scenes',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="lightbulb-group" size={26} color={isEnabled ? color : '#D1D5DB'} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="lightbulb-group" color={isEnabled ? color : colors.iconDisabled} focused={focused} />
           ),
         }}
         listeners={{
@@ -93,19 +97,30 @@ const DeviceControlTabs = ({ route }) => {
       <Tab.Screen
         name="ScheduleTab"
         component={ScheduleScreen}
-        initialParams={{ deviceName, isOnline: isEnabled }}
+        initialParams={{ deviceName, isOnline: isScheduleEnabled }}
         options={{
           tabBarLabel: 'Schedule',
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="clock-outline" size={26} color={isEnabled ? color : '#D1D5DB'} />
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="clock-outline" color={isScheduleEnabled ? color : colors.iconDisabled} focused={focused} />
           ),
         }}
         listeners={{
           tabPress: (e) => {
-            if (!isEnabled) {
+            if (!isScheduleEnabled) {
               e.preventDefault();
             }
           },
+        }}
+      />
+      <Tab.Screen
+        name="SettingsTab"
+        component={DeviceSettingsScreen}
+        initialParams={{ deviceName, deviceId }}
+        options={{
+          tabBarLabel: 'Settings',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="cog-outline" color={color} focused={focused} />
+          ),
         }}
       />
     </Tab.Navigator>

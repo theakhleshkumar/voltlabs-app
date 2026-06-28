@@ -5,7 +5,12 @@
  */
 
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { AppState } from 'react-native';
 import mqttClient from '../utils/mqttClient';
+
+// If the app was backgrounded longer than this, don't trust the existing
+// connection - Android can kill the socket without ever firing 'close'.
+const FORCE_RECONNECT_THRESHOLD_MS = 15000;
 
 const DeviceStatusContext = createContext(null);
 
@@ -67,7 +72,8 @@ export const DeviceStatusProvider = ({ children }) => {
   }, []);
 
   // Subscribe to a device's status
-  const subscribeToDevice = useCallback(async (deviceName) => {
+  // topicId = "{deviceId}/{mqttSecret}", used to build the actual MQTT topic
+  const subscribeToDevice = useCallback(async (deviceName, topicId) => {
     if (subscribedDevicesRef.current.has(deviceName)) {
       console.log(`[DeviceStatusContext] Already subscribed to ${deviceName}`);
       return;
@@ -82,7 +88,7 @@ export const DeviceStatusProvider = ({ children }) => {
 
     try {
       console.log(`[DeviceStatusContext] Subscribing to ${deviceName}`);
-      await mqttClient.subscribeToDevice(deviceName, (status) => {
+      await mqttClient.subscribeToDevice(deviceName, topicId, (status) => {
         if (isMountedRef.current) {
           console.log(`[DeviceStatusContext] Status update for ${deviceName}:`, status);
           updateDeviceStatus(deviceName, status);
@@ -99,7 +105,7 @@ export const DeviceStatusProvider = ({ children }) => {
     if (!devices || devices.length === 0) return;
 
     for (const device of devices) {
-      await subscribeToDevice(device.name);
+      await subscribeToDevice(device.name, `${device.name}/${device.mqttSecret}`);
     }
   }, [subscribeToDevice]);
 
@@ -162,6 +168,40 @@ export const DeviceStatusProvider = ({ children }) => {
       statusDebounceTimers.current = {};
     };
   }, []);
+
+  // Recover the MQTT connection when the app returns to the foreground.
+  // The mqtt.js client's own keepalive/reconnect timers pause while the JS
+  // thread is suspended in the background, and Android can kill the socket
+  // outright without firing 'close' - so isConnected can be stuck true on a
+  // dead link. After a meaningful background period, force a fresh reconnect
+  // rather than trusting the stale state.
+  const backgroundedAtRef = useRef(null);
+  useEffect(() => {
+    const handleAppStateChange = (nextState) => {
+      if (nextState === 'active') {
+        const backgroundedAt = backgroundedAtRef.current;
+        backgroundedAtRef.current = null;
+        const elapsed = backgroundedAt ? Date.now() - backgroundedAt : 0;
+
+        if (elapsed > FORCE_RECONNECT_THRESHOLD_MS) {
+          console.log(`[DeviceStatusContext] App foregrounded after ${Math.round(elapsed / 1000)}s - forcing MQTT reconnect`);
+          mqttClient.reconnect()
+            .then(() => isMountedRef.current && setMqttConnected(true))
+            .catch((error) => {
+              console.error('[DeviceStatusContext] Foreground reconnect failed:', error);
+              if (isMountedRef.current) setMqttConnected(false);
+            });
+        } else {
+          connectMqtt();
+        }
+      } else {
+        backgroundedAtRef.current = Date.now();
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
+  }, [connectMqtt]);
 
   const value = {
     deviceStatuses,

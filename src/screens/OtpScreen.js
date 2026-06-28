@@ -5,16 +5,17 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { fonts } from '../constants/theme';
+import { showToast } from '../components/Toast';
 
 const OtpScreen = ({ route }) => {
   const { login } = useAuth();
   const [otp, setOtp] = useState('');
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(60);
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const phoneNumber = route.params?.phoneNumber || '';
@@ -32,7 +33,7 @@ const OtpScreen = ({ route }) => {
 
   const handleVerifyOTP = async () => {
     if (!isValidOtp) {
-      Alert.alert('Error', 'Please enter a valid 6-digit OTP');
+      showToast('Please enter a valid 6-digit OTP');
       return;
     }
 
@@ -45,7 +46,7 @@ const OtpScreen = ({ route }) => {
         login(response.user);
       }
     } catch (error) {
-      Alert.alert('Verification Failed', error.message || 'Invalid OTP');
+      showToast(error.message || 'Invalid OTP');
       // Clear OTP on error
       setOtp('');
     } finally {
@@ -58,16 +59,16 @@ const OtpScreen = ({ route }) => {
     try {
       const response = await api.sendOtp(phoneNumber);
       setOtp('');
-      setTimer(30);
+      setTimer(60);
       
       // In dev mode, show the OTP (stripped from release builds)
       if (__DEV__ && response.devOtp) {
-        Alert.alert('OTP Resent', `Development OTP: ${response.devOtp}`);
+        showToast(`Development OTP: ${response.devOtp}`, 'success');
       } else {
-        Alert.alert('OTP Resent', 'A new OTP has been sent to your phone');
+        showToast('A new OTP has been sent to your phone', 'success');
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to resend OTP');
+      showToast(error.message || 'Failed to resend OTP');
     } finally {
       setIsResending(false);
     }
@@ -123,17 +124,19 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: 'bold',
     marginTop: 40,
     marginBottom: 8,
   },
   subtitle: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
     marginBottom: 40,
   },
   input: {
+    fontFamily: fonts.regular,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
@@ -155,21 +158,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
   },
   buttonText: {
+    fontFamily: fonts.semiBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
   timerContainer: {
     alignItems: 'center',
   },
   timerText: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
   },
   resendText: {
+    fontFamily: fonts.semiBold,
     fontSize: 14,
     color: '#000',
-    fontWeight: '600',
   },
 });
 

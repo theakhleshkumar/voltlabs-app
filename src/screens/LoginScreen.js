@@ -5,10 +5,11 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import api from '../services/api';
+import { colors, fonts } from '../constants/theme';
+import { showToast } from '../components/Toast';
 
 const LoginScreen = ({ navigation }) => {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -18,7 +19,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleSendOTP = async () => {
     if (!isValidPhone) {
-      Alert.alert('Error', 'Please enter a valid 10-digit phone number');
+      showToast('Please enter a valid 10-digit phone number');
       return;
     }
 
@@ -36,7 +37,7 @@ const LoginScreen = ({ navigation }) => {
         expiresIn: response.expiresIn,
       });
     } catch (error) {
-      Alert.alert('Error', error.message || 'Failed to send OTP');
+      showToast(error.message || 'Failed to send OTP');
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +66,7 @@ const LoginScreen = ({ navigation }) => {
         onPress={handleSendOTP}
         disabled={!isValidPhone || isLoading}>
         {isLoading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.dark} />
         ) : (
           <Text style={styles.buttonText}>Send OTP</Text>
         )}
@@ -81,48 +82,50 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: 'bold',
     marginTop: 40,
     marginBottom: 8,
   },
   subtitle: {
+    fontFamily: fonts.regular,
     fontSize: 14,
-    color: '#666',
+    color: colors.textMuted,
     marginBottom: 40,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
     borderRadius: 8,
     paddingHorizontal: 16,
     marginBottom: 20,
   },
   countryCode: {
+    fontFamily: fonts.semiBold,
     fontSize: 16,
-    fontWeight: '600',
     marginRight: 8,
   },
   input: {
+    fontFamily: fonts.regular,
     flex: 1,
     paddingVertical: 16,
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#000',
+    backgroundColor: colors.primary,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: colors.disabled,
   },
   buttonText: {
-    color: '#fff',
+    fontFamily: fonts.semiBold,
+    color: colors.dark,
     fontSize: 16,
-    fontWeight: '600',
   },
 });
 

@@ -52,6 +52,8 @@ const deviceSchema = new mongoose.Schema({
   },
   // MQTT topic
   mqttTopic: String,
+  // Per-device random secret used to namespace MQTT topics
+  mqttSecret: String,
   // Firmware version
   firmwareVersion: String,
   // Metadata
@@ -71,10 +73,10 @@ deviceSchema.pre('save', function(next) {
   next();
 });
 
-// Generate MQTT topic based on deviceId
+// Generate MQTT topic based on deviceId + per-device secret
 deviceSchema.pre('save', function(next) {
-  if (!this.mqttTopic) {
-    this.mqttTopic = `voltlabs/${this.deviceId}/status`;
+  if (this.mqttSecret) {
+    this.mqttTopic = `voltlabs/${this.deviceId}/${this.mqttSecret}/status`;
   }
   next();
 });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { fonts } from '../constants/theme';
 
 const SelectDeviceTypeScreen = ({ navigation }) => {
   const deviceTypes = [
@@ -66,12 +67,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 8,
   },
   subtitle: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
     marginBottom: 32,
@@ -101,14 +103,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   deviceName: {
+    fontFamily: fonts.semiBold,
     fontSize: 18,
-    fontWeight: '600',
     color: '#000',
   },
   deviceNameDisabled: {
     color: '#999',
   },
   comingSoonText: {
+    fontFamily: fonts.regular,
     fontSize: 12,
     color: '#666',
     marginTop: 4,

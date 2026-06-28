@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { requestBlePermissions } from '../utils/blePermissions';
+import { fonts } from '../constants/theme';
 
 const PermissionRequestScreen = ({ navigation }) => {
   const [isRequesting, setIsRequesting] = useState(false);
@@ -111,11 +112,12 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: 'bold',
     marginBottom: 12,
   },
   description: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: '#666',
     lineHeight: 24,
@@ -138,12 +140,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   permissionTitle: {
+    fontFamily: fonts.semiBold,
     fontSize: 18,
-    fontWeight: '600',
     marginBottom: 4,
     color: '#000',
   },
   permissionDescription: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
     lineHeight: 20,
@@ -154,6 +157,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   reassuranceText: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
@@ -170,9 +174,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#666',
   },
   buttonText: {
+    fontFamily: fonts.semiBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
 });
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { colors, fonts } from '../constants/theme';
 
 const WelcomeScreen = ({ navigation }) => {
   return (
@@ -39,21 +40,22 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   tagline: {
+    fontFamily: fonts.regular,
     fontSize: 16,
-    color: '#666',
+    color: colors.textMuted,
     textAlign: 'center',
   },
   button: {
-    backgroundColor: '#000',
+    backgroundColor: colors.primary,
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 20,
   },
   buttonText: {
-    color: '#fff',
+    fontFamily: fonts.semiBold,
+    color: colors.dark,
     fontSize: 16,
-    fontWeight: '600',
   },
 });
 

@@ -14,9 +14,12 @@ import {
   Alert,
   Modal,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useDeviceStatus } from '../hooks/useDeviceStatus';
+import { colors, fonts } from '../constants/theme';
+import { showToast } from '../components/Toast';
 
 // Sleep timer durations in minutes
 const SLEEP_DURATIONS = [5, 15, 30, 45, 60];
@@ -29,7 +32,7 @@ const MAX_SCHEDULES = 4;
 
 const ScheduleScreen = ({ route }) => {
   const { deviceName } = route.params || {};
-  const { isOnline, sendCommand, wakeUp, schedules: deviceSchedules, sleepTimer } = useDeviceStatus(deviceName);
+  const { isOnline, power, isConnecting, sendCommand, wakeUp, schedules: deviceSchedules, sleepTimer } = useDeviceStatus(deviceName);
 
   // Sleep timer state
   const [sleepTimerActive, setSleepTimerActive] = useState(false);
@@ -56,6 +59,7 @@ const ScheduleScreen = ({ route }) => {
   const [modalAction, setModalAction] = useState('on');
 
   const isEnabled = isOnline === true;
+  const powerOn = power === true;
 
   // Sync wake-up/schedule state from the device once its status first arrives,
   // so the UI reflects what's persisted on the device rather than the defaults above.
@@ -116,7 +120,7 @@ const ScheduleScreen = ({ route }) => {
   }, [sleepTimer]);
 
   const startSleepTimer = () => {
-    if (!isEnabled) return;
+    if (!isEnabled || !powerOn) return;
     const durationSec = sleepDuration * 60;
     setSleepTimerActive(true);
     setSleepTimeRemaining(durationSec);
@@ -181,7 +185,7 @@ const ScheduleScreen = ({ route }) => {
 
   const openAddScheduleModal = () => {
     if (schedules.length >= MAX_SCHEDULES) {
-      Alert.alert('Limit reached', `You can only have up to ${MAX_SCHEDULES} schedules.`);
+      showToast(`You can only have up to ${MAX_SCHEDULES} schedules.`);
       return;
     }
     setEditingScheduleId(null);
@@ -282,11 +286,22 @@ const ScheduleScreen = ({ route }) => {
     }
   };
 
+  if (isConnecting) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.disabledContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.disabledText}>Syncing device status...</Text>
+        </View>
+      </View>
+    );
+  }
+
   if (!isEnabled) {
     return (
       <View style={styles.container}>
         <View style={styles.disabledContainer}>
-          <Icon name="clock-outline" size={80} color="#9CA3AF" />
+          <Icon name="clock-outline" size={80} color={colors.textPlaceholder} />
           <Text style={styles.disabledTitle}>Schedule</Text>
           <Text style={styles.disabledText}>
             Device offline - controls disabled
@@ -306,13 +321,15 @@ const ScheduleScreen = ({ route }) => {
         {/* Sleep Timer */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
-            <Icon name="power-sleep" size={28} color="#6366F1" />
+            <Icon name="power-sleep" size={28} color={powerOn ? colors.primary : colors.textPlaceholder} />
             <View style={styles.cardTitleContainer}>
               <Text style={styles.cardTitle}>Sleep Timer</Text>
-              <Text style={styles.cardSubtitle}>Gradually dims then turns off</Text>
+              <Text style={styles.cardSubtitle}>
+                {powerOn ? 'Gradually dims then turns off' : 'Turn on the lamp to use the sleep timer'}
+              </Text>
             </View>
           </View>
-          
+
           {!sleepTimerActive ? (
             <>
               <Text style={styles.durationLabel}>Duration</Text>
@@ -323,8 +340,10 @@ const ScheduleScreen = ({ route }) => {
                     style={[
                       styles.durationButton,
                       sleepDuration === duration && styles.durationButtonActive,
+                      !powerOn && styles.durationButtonDisabled,
                     ]}
                     onPress={() => setSleepDuration(duration)}
+                    disabled={!powerOn}
                   >
                     <Text style={[
                       styles.durationButtonText,
@@ -336,10 +355,11 @@ const ScheduleScreen = ({ route }) => {
                 ))}
               </View>
               <TouchableOpacity
-                style={styles.startButton}
+                style={[styles.startButton, !powerOn && styles.startButtonDisabled]}
                 onPress={startSleepTimer}
+                disabled={!powerOn}
               >
-                <Icon name="play" size={20} color="#fff" />
+                <Icon name="play" size={20} color={colors.dark} />
                 <Text style={styles.startButtonText}>Start Sleep Timer</Text>
               </TouchableOpacity>
             </>
@@ -369,8 +389,8 @@ const ScheduleScreen = ({ route }) => {
             <Switch
               value={wakeUpEnabled}
               onValueChange={handleWakeUpToggle}
-              trackColor={{ false: '#E5E7EB', true: '#FDE68A' }}
-              thumbColor={wakeUpEnabled ? '#F59E0B' : '#9CA3AF'}
+              trackColor={{ false: colors.border, true: '#FDE68A' }}
+              thumbColor={wakeUpEnabled ? '#F59E0B' : colors.textPlaceholder}
             />
           </View>
           
@@ -378,38 +398,46 @@ const ScheduleScreen = ({ route }) => {
             <>
               <View style={styles.timePickerContainer}>
                 <View style={styles.timePicker}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.timeAdjustButton}
                     onPress={() => adjustTime('wakeup', 'hour', 1)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Increase wake-up hour"
                   >
-                    <Icon name="chevron-up" size={24} color="#6B7280" />
+                    <Icon name="chevron-up" size={24} color={colors.textMuted} />
                   </TouchableOpacity>
                   <Text style={styles.timeValue}>
                     {(wakeUpTime.hour % 12 || 12).toString().padStart(2, '0')}
                   </Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.timeAdjustButton}
                     onPress={() => adjustTime('wakeup', 'hour', -1)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Decrease wake-up hour"
                   >
-                    <Icon name="chevron-down" size={24} color="#6B7280" />
+                    <Icon name="chevron-down" size={24} color={colors.textMuted} />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.timeColon}>:</Text>
                 <View style={styles.timePicker}>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.timeAdjustButton}
                     onPress={() => adjustTime('wakeup', 'minute', 5)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Increase wake-up minute"
                   >
-                    <Icon name="chevron-up" size={24} color="#6B7280" />
+                    <Icon name="chevron-up" size={24} color={colors.textMuted} />
                   </TouchableOpacity>
                   <Text style={styles.timeValue}>
                     {wakeUpTime.minute.toString().padStart(2, '0')}
                   </Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.timeAdjustButton}
                     onPress={() => adjustTime('wakeup', 'minute', -5)}
+                    accessibilityRole="button"
+                    accessibilityLabel="Decrease wake-up minute"
                   >
-                    <Icon name="chevron-down" size={24} color="#6B7280" />
+                    <Icon name="chevron-down" size={24} color={colors.textMuted} />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.ampm}>{wakeUpTime.hour >= 12 ? 'PM' : 'AM'}</Text>
@@ -479,8 +507,8 @@ const ScheduleScreen = ({ route }) => {
               <Switch
                 value={schedule.enabled}
                 onValueChange={() => toggleSchedule(schedule.id)}
-                trackColor={{ false: '#E5E7EB', true: '#A7F3D0' }}
-                thumbColor={schedule.enabled ? '#10B981' : '#9CA3AF'}
+                trackColor={{ false: colors.border, true: '#A7F3D0' }}
+                thumbColor={schedule.enabled ? '#10B981' : colors.textPlaceholder}
               />
             </View>
           ))}
@@ -489,7 +517,7 @@ const ScheduleScreen = ({ route }) => {
             style={styles.addScheduleButton}
             onPress={openAddScheduleModal}
           >
-            <Icon name="plus" size={20} color="#6B7280" />
+            <Icon name="plus" size={20} color={colors.textMuted} />
             <Text style={styles.addScheduleText}>Add Schedule</Text>
           </TouchableOpacity>
         </View>
@@ -508,8 +536,12 @@ const ScheduleScreen = ({ route }) => {
               <Text style={styles.modalTitle}>
                 {editingScheduleId !== null ? 'Edit Schedule' : 'Add Schedule'}
               </Text>
-              <TouchableOpacity onPress={() => setScheduleModalVisible(false)}>
-                <Icon name="close" size={24} color="#6B7280" />
+              <TouchableOpacity
+                onPress={() => setScheduleModalVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+              >
+                <Icon name="close" size={24} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
 
@@ -519,7 +551,7 @@ const ScheduleScreen = ({ route }) => {
               value={modalName}
               onChangeText={setModalName}
               placeholder="e.g. Morning"
-              placeholderTextColor="#9CA3AF"
+              placeholderTextColor={colors.textPlaceholder}
               maxLength={20}
             />
 
@@ -529,8 +561,10 @@ const ScheduleScreen = ({ route }) => {
                 <TouchableOpacity
                   style={styles.timeAdjustButton}
                   onPress={() => adjustTime('modal', 'hour', 1)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Increase schedule hour"
                 >
-                  <Icon name="chevron-up" size={24} color="#6B7280" />
+                  <Icon name="chevron-up" size={24} color={colors.textMuted} />
                 </TouchableOpacity>
                 <Text style={styles.timeValue}>
                   {(modalTime.hour % 12 || 12).toString().padStart(2, '0')}
@@ -538,8 +572,10 @@ const ScheduleScreen = ({ route }) => {
                 <TouchableOpacity
                   style={styles.timeAdjustButton}
                   onPress={() => adjustTime('modal', 'hour', -1)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Decrease schedule hour"
                 >
-                  <Icon name="chevron-down" size={24} color="#6B7280" />
+                  <Icon name="chevron-down" size={24} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
               <Text style={styles.timeColon}>:</Text>
@@ -547,8 +583,10 @@ const ScheduleScreen = ({ route }) => {
                 <TouchableOpacity
                   style={styles.timeAdjustButton}
                   onPress={() => adjustTime('modal', 'minute', 5)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Increase schedule minute"
                 >
-                  <Icon name="chevron-up" size={24} color="#6B7280" />
+                  <Icon name="chevron-up" size={24} color={colors.textMuted} />
                 </TouchableOpacity>
                 <Text style={styles.timeValue}>
                   {modalTime.minute.toString().padStart(2, '0')}
@@ -556,8 +594,10 @@ const ScheduleScreen = ({ route }) => {
                 <TouchableOpacity
                   style={styles.timeAdjustButton}
                   onPress={() => adjustTime('modal', 'minute', -5)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Decrease schedule minute"
                 >
-                  <Icon name="chevron-down" size={24} color="#6B7280" />
+                  <Icon name="chevron-down" size={24} color={colors.textMuted} />
                 </TouchableOpacity>
               </View>
               <Text style={styles.ampm}>{modalTime.hour >= 12 ? 'PM' : 'AM'}</Text>
@@ -575,7 +615,7 @@ const ScheduleScreen = ({ route }) => {
                 <Icon
                   name="lightbulb-on"
                   size={18}
-                  color={modalAction === 'on' ? '#10B981' : '#9CA3AF'}
+                  color={modalAction === 'on' ? '#10B981' : colors.textPlaceholder}
                 />
                 <Text style={[
                   styles.actionToggleText,
@@ -594,7 +634,7 @@ const ScheduleScreen = ({ route }) => {
                 <Icon
                   name="lightbulb-off"
                   size={18}
-                  color={modalAction === 'off' ? '#EF4444' : '#9CA3AF'}
+                  color={modalAction === 'off' ? '#EF4444' : colors.textPlaceholder}
                 />
                 <Text style={[
                   styles.actionToggleText,
@@ -625,7 +665,7 @@ const ScheduleScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surface,
   },
   scrollView: {
     flex: 1,
@@ -641,14 +681,15 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   disabledTitle: {
+    fontFamily: fonts.bold,
     fontSize: 28,
-    fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     marginTop: 16,
   },
   disabledText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -674,20 +715,21 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   cardTitle: {
+    fontFamily: fonts.bold,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#374151',
+    color: colors.textSecondary,
   },
   cardSubtitle: {
+    fontFamily: fonts.regular,
     fontSize: 13,
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     marginTop: 2,
   },
   // Sleep timer styles
   durationLabel: {
+    fontFamily: fonts.semiBold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textMuted,
     marginBottom: 12,
   },
   durationOptions: {
@@ -699,47 +741,54 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
   },
   durationButtonActive: {
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.primary,
   },
   durationButtonText: {
+    fontFamily: fonts.semiBold,
     fontSize: 15,
-    fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textMuted,
   },
   durationButtonTextActive: {
-    color: '#fff',
+    color: colors.dark,
+  },
+  durationButtonDisabled: {
+    opacity: 0.5,
+  },
+  startButtonDisabled: {
+    opacity: 0.5,
   },
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366F1',
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
   },
   startButtonText: {
+    fontFamily: fonts.semiBold,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    color: colors.dark,
   },
   timerActive: {
     alignItems: 'center',
     paddingVertical: 16,
   },
   timerDisplay: {
+    fontFamily: fonts.bold,
     fontSize: 48,
-    fontWeight: '700',
-    color: '#6366F1',
+    color: colors.dark,
     fontVariant: ['tabular-nums'],
   },
   timerLabel: {
+    fontFamily: fonts.regular,
     fontSize: 14,
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     marginTop: 4,
     marginBottom: 16,
   },
@@ -754,8 +803,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   stopButtonText: {
+    fontFamily: fonts.semiBold,
     fontSize: 15,
-    fontWeight: '600',
     color: '#EF4444',
   },
   // Wake-up light styles
@@ -772,20 +821,20 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   timeValue: {
+    fontFamily: fonts.bold,
     fontSize: 40,
-    fontWeight: '700',
-    color: '#374151',
+    color: colors.textSecondary,
     fontVariant: ['tabular-nums'],
   },
   timeColon: {
+    fontFamily: fonts.bold,
     fontSize: 40,
-    fontWeight: '700',
-    color: '#374151',
+    color: colors.textSecondary,
     marginHorizontal: 8,
   },
   ampm: {
+    fontFamily: fonts.semiBold,
     fontSize: 20,
-    fontWeight: '600',
     color: '#F59E0B',
     marginLeft: 12,
   },
@@ -793,9 +842,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   wakeUpDurationLabel: {
+    fontFamily: fonts.semiBold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textMuted,
     marginBottom: 10,
   },
   wakeUpDurationOptions: {
@@ -806,16 +855,16 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
   },
   wakeUpDurationButtonActive: {
     backgroundColor: '#FDE68A',
   },
   wakeUpDurationText: {
+    fontFamily: fonts.semiBold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textMuted,
   },
   wakeUpDurationTextActive: {
     color: '#B45309',
@@ -826,15 +875,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.surfaceAlt,
   },
   scheduleInfo: {
     flex: 1,
   },
   scheduleName: {
+    fontFamily: fonts.semiBold,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   scheduleDetails: {
@@ -843,12 +892,13 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   scheduleTime: {
+    fontFamily: fonts.regular,
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textMuted,
   },
   scheduleAction: {
+    fontFamily: fonts.medium,
     fontSize: 13,
-    fontWeight: '500',
   },
   addScheduleButton: {
     flexDirection: 'row',
@@ -857,15 +907,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     marginTop: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 10,
     borderStyle: 'dashed',
     gap: 6,
   },
   addScheduleText: {
+    fontFamily: fonts.semiBold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textMuted,
   },
   // Add/Edit schedule modal styles
   modalOverlay: {
@@ -889,25 +939,26 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   modalTitle: {
+    fontFamily: fonts.bold,
     fontSize: 18,
-    fontWeight: '700',
-    color: '#374151',
+    color: colors.textSecondary,
   },
   modalLabel: {
+    fontFamily: fonts.semiBold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+    color: colors.textMuted,
     marginTop: 16,
     marginBottom: 8,
   },
   modalInput: {
+    fontFamily: fonts.regular,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 16,
-    color: '#374151',
+    color: colors.textSecondary,
   },
   actionToggleContainer: {
     flexDirection: 'row',
@@ -920,7 +971,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 10,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.surfaceAlt,
     gap: 6,
   },
   actionToggleButtonOnActive: {
@@ -930,21 +981,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
   },
   actionToggleText: {
+    fontFamily: fonts.semiBold,
     fontSize: 14,
-    fontWeight: '600',
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
   },
   modalSaveButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 20,
   },
   modalSaveButtonText: {
+    fontFamily: fonts.semiBold,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+    color: colors.dark,
   },
   modalDeleteButton: {
     flexDirection: 'row',
@@ -955,8 +1006,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   modalDeleteButtonText: {
+    fontFamily: fonts.semiBold,
     fontSize: 14,
-    fontWeight: '600',
     color: '#EF4444',
   },
 });

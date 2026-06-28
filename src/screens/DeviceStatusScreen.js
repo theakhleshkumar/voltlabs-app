@@ -10,15 +10,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   ScrollView,
   useWindowDimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Slider from '@react-native-community/slider';
 import { useDeviceStatus } from '../hooks/useDeviceStatus';
+import { colors, fonts } from '../constants/theme';
+import { showToast } from '../components/Toast';
 
-const DeviceStatusScreen = ({ route, navigation }) => {
+const DeviceStatusScreen = ({ route }) => {
   const { deviceName } = route.params || {};
   const {
     isOnline,
@@ -35,9 +36,9 @@ const DeviceStatusScreen = ({ route, navigation }) => {
     isSendingCommand,
   } = useDeviceStatus(deviceName);
   
-  // Get screen dimensions for slider width
+  // Get screen width to size cards consistently with screen padding
   const { width: screenWidth } = useWindowDimensions();
-  const sliderWidth = screenWidth - 96; // Account for padding (24*2 card + 24*2 screen)
+  const cardWidth = screenWidth - 48; // Account for screen padding (24*2) - matches brightnessCard's effective width
 
   // Track local brightness for UI responsiveness (syncs with MQTT updates)
   const [brightness, setBrightness] = useState(100);
@@ -57,9 +58,12 @@ const DeviceStatusScreen = ({ route, navigation }) => {
     return lastSeen.toLocaleTimeString();
   };
 
+  // Convert a 0-255 channel value to a 2-digit uppercase hex string
+  const toHex = (value) => Math.max(0, Math.min(255, value ?? 0)).toString(16).toUpperCase().padStart(2, '0');
+
   const handlePowerToggle = async () => {
     if (!isOnline) {
-      Alert.alert('Device Offline', 'Cannot control device while offline');
+      showToast('Cannot control device while offline');
       return;
     }
 
@@ -69,7 +73,7 @@ const DeviceStatusScreen = ({ route, navigation }) => {
     try {
       await sendCommand({ power: newPowerState });
     } catch (err) {
-      Alert.alert('Error', 'Failed to send command to device');
+      showToast('Failed to send command to device');
       console.error('Power toggle error:', err);
     }
   };
@@ -79,7 +83,7 @@ const DeviceStatusScreen = ({ route, navigation }) => {
     if (isConnecting) {
       return (
         <View style={styles.statusContainer}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color={colors.dark} />
           <Text style={styles.statusText}>Connecting to cloud...</Text>
         </View>
       );
@@ -88,7 +92,7 @@ const DeviceStatusScreen = ({ route, navigation }) => {
     if (error) {
       return (
         <View style={styles.statusContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
+          <Icon name="alert-circle-outline" size={48} color={colors.error} style={styles.errorIcon} />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.retryButton} onPress={reconnect}>
             <Text style={styles.retryButtonText}>Retry</Text>
@@ -103,8 +107,17 @@ const DeviceStatusScreen = ({ route, navigation }) => {
     
     return (
       <View style={styles.statusContainer}>
-        {/* Power Button - Green for ON, Red for OFF */}
-        <TouchableOpacity
+        <View style={[styles.statusCard, { width: cardWidth }]}>
+          {/* Status badge */}
+          <View style={[styles.statusBadge, deviceOnline ? styles.statusBadgeOnline : styles.statusBadgeOffline]}>
+            <View style={[styles.statusDot, deviceOnline ? styles.statusDotOnline : styles.statusDotOffline]} />
+            <Text style={[styles.statusBadgeText, deviceOnline ? styles.onlineLabel : styles.offlineLabel]}>
+              {deviceOnline ? 'Online' : 'Offline'}
+            </Text>
+          </View>
+
+          {/* Power Button - Green for ON, Red for OFF */}
+          <TouchableOpacity
           style={[
             styles.powerButton,
             powerOn ? styles.powerButtonOn : styles.powerButtonOff,
@@ -113,6 +126,9 @@ const DeviceStatusScreen = ({ route, navigation }) => {
           onPress={handlePowerToggle}
           disabled={!deviceOnline || isSendingCommand}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={powerOn ? 'Turn lamp off' : 'Turn lamp on'}
+          accessibilityState={{ disabled: !deviceOnline || isSendingCommand }}
         >
           {isSendingCommand ? (
             <ActivityIndicator size="large" color="#fff" />
@@ -126,56 +142,85 @@ const DeviceStatusScreen = ({ route, navigation }) => {
         </TouchableOpacity>
         
         <Text style={[
-          styles.statusLabel,
-          deviceOnline ? styles.onlineLabel : styles.offlineLabel
-        ]}>
-          {deviceOnline ? 'Online' : 'Offline'}
-        </Text>
-        <Text style={[
           styles.powerStateText,
           powerOn ? styles.powerStateOn : styles.powerStateOff,
         ]}>
-          {powerOn ? 'ON' : 'OFF'}
+          {powerOn ? 'Lamp is ON' : 'Lamp is OFF'}
         </Text>
+        {deviceOnline && (
+          <Text style={styles.powerHint}>
+            Tap the button to turn {powerOn ? 'off' : 'on'}
+          </Text>
+        )}
         {deviceOnline && lastSeen && (
-          <Text style={styles.lastSeenText}>Connected {formatLastSeen()}</Text>
+          <View style={styles.lastSeenRow}>
+            <Icon name="clock-outline" size={14} color={colors.textMuted} />
+            <Text style={styles.lastSeenText}>Connected {formatLastSeen()}</Text>
+          </View>
         )}
         {!deviceOnline && (
           <Text style={styles.offlineHint}>
             Check that the device is powered on and connected to Wi-Fi
           </Text>
         )}
+        </View>
         
         {/* Brightness Slider */}
         {deviceOnline && powerOn && (
-          <View style={styles.brightnessCard}>
-            {/* Title */}
-            <Text style={styles.brightnessTitle}>Brightness</Text>
-            
-            {/* React Native Community Slider */}
-            <Slider
-              style={{ width: sliderWidth, height: 40 }}
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              value={brightness}
-              onValueChange={(value) => setBrightness(Math.round(value))}
-              onSlidingComplete={(value) => {
-                if (isOnline) {
-                  sendCommand({ brightness: Math.round(value) }).catch((err) => {
-                    console.error('Brightness error:', err);
-                  });
-                }
-              }}
-              minimumTrackTintColor="#FFC107"
-              maximumTrackTintColor="#E5E7EB"
-              thumbTintColor="#FFC107"
-            />
-            
-            {/* Bottom Row: percentage */}
-            <View style={styles.brightnessFooter}>
+          <View style={[styles.brightnessCard, { width: cardWidth }]}>
+            {/* Header: title + live value */}
+            <View style={styles.brightnessHeader}>
+              <Text style={styles.brightnessTitle}>Brightness</Text>
               <Text style={styles.brightnessPercent}>{brightness}%</Text>
             </View>
+
+            {/* Slider with low/high brightness icons */}
+            <View style={styles.brightnessSliderRow}>
+              <Icon name="brightness-4" size={20} color={colors.textPlaceholder} />
+              <Slider
+                style={styles.brightnessSlider}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={brightness}
+                onValueChange={(value) => setBrightness(Math.round(value))}
+                onSlidingComplete={(value) => {
+                  if (isOnline) {
+                    sendCommand({ brightness: Math.round(value) }).catch((err) => {
+                      console.error('Brightness error:', err);
+                    });
+                  }
+                }}
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.border}
+                thumbTintColor={colors.primary}
+              />
+              <Icon name="brightness-7" size={20} color={colors.textPlaceholder} />
+            </View>
+          </View>
+        )}
+
+        {/* Current Color */}
+        {deviceOnline && powerOn && (
+          <View style={[styles.colorCard, { width: cardWidth }]}>
+            {/* Header: title + hex value */}
+            <View style={styles.colorHeader}>
+              <Text style={styles.colorTitle}>Current Color</Text>
+              <Text style={styles.colorHex}>
+                #{toHex(deviceR)}{toHex(deviceG)}{toHex(deviceB)}
+              </Text>
+            </View>
+
+            {/* Glowing swatch - shadow tints to match the lamp's current color */}
+            <View
+              style={[
+                styles.colorSwatch,
+                {
+                  backgroundColor: `rgb(${deviceR ?? 0}, ${deviceG ?? 0}, ${deviceB ?? 0})`,
+                  shadowColor: `rgb(${deviceR ?? 0}, ${deviceG ?? 0}, ${deviceB ?? 0})`,
+                },
+              ]}
+            />
           </View>
         )}
       </View>
@@ -214,11 +259,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
   },
-  statusLabel: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 15,
-    marginBottom: 8,
+  // Status card - wraps power button + status info, mirrors brightness/color cards
+  statusCard: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  statusBadgeOnline: {
+    backgroundColor: '#ECFDF5',
+  },
+  statusBadgeOffline: {
+    backgroundColor: '#FEF2F2',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  statusDotOnline: {
+    backgroundColor: '#059669',
+  },
+  statusDotOffline: {
+    backgroundColor: '#DC2626',
+  },
+  statusBadgeText: {
+    fontFamily: fonts.semiBold,
+    fontSize: 14,
   },
   onlineLabel: {
     color: '#059669',
@@ -227,33 +309,43 @@ const styles = StyleSheet.create({
     color: '#DC2626',
   },
   statusText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
-    color: '#333',
+    color: colors.textSecondary,
     marginTop: 16,
     textAlign: 'center',
   },
   statusSubtext: {
+    fontFamily: fonts.regular,
     fontSize: 14,
-    color: '#666',
+    color: colors.textMuted,
     marginTop: 8,
     textAlign: 'center',
   },
+  lastSeenRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
   lastSeenText: {
+    fontFamily: fonts.regular,
     fontSize: 14,
-    color: '#666',
+    color: colors.textMuted,
   },
   offlineHint: {
+    fontFamily: fonts.regular,
     fontSize: 14,
-    color: '#999',
+    color: colors.textPlaceholder,
     textAlign: 'center',
     marginTop: 8,
     paddingHorizontal: 24,
   },
   errorIcon: {
-    fontSize: 48,
     marginBottom: 16,
   },
   errorText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: '#DC2626',
     textAlign: 'center',
@@ -266,21 +358,27 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryButtonText: {
+    fontFamily: fonts.semiBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
   powerStateText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 4,
-    marginBottom: 8,
+    fontFamily: fonts.bold,
+    fontSize: 18,
+    marginTop: 16,
+    marginBottom: 4,
   },
   powerStateOn: {
     color: '#22c55e',
   },
   powerStateOff: {
     color: '#ef4444',
+  },
+  powerHint: {
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    color: colors.textMuted,
+    marginBottom: 4,
   },
   // Power button styles - solid circular button
   powerButton: {
@@ -318,25 +416,75 @@ const styles = StyleSheet.create({
     shadowRadius: 24,
     elevation: 8,
   },
-  brightnessTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 20,
-  },
-
-  brightnessFooter: {
+  brightnessHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: 16,
-    paddingHorizontal: 8,
+    marginBottom: 20,
+  },
+  brightnessTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 20,
+    color: colors.textSecondary,
   },
   brightnessPercent: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: '600',
-    color: '#374151',
+    color: colors.primary,
+  },
+  brightnessSliderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    gap: 12,
+  },
+  brightnessSlider: {
+    flex: 1,
+    height: 40,
+  },
+  // Current color card - mirrors brightnessCard styling
+  colorCard: {
+    width: '100%',
+    marginTop: 20,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  colorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 24,
+  },
+  colorTitle: {
+    fontFamily: fonts.bold,
+    fontSize: 20,
+    color: colors.textSecondary,
+  },
+  colorHex: {
+    fontFamily: fonts.bold,
+    fontSize: 18,
+    color: colors.textMuted,
+    letterSpacing: 1,
+  },
+  colorSwatch: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: colors.border,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 12,
   },
 });
 

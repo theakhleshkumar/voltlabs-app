@@ -12,6 +12,7 @@ export { default as PermissionRequestScreen } from './PermissionRequestScreen';
 export { default as BleScanScreen } from './BleScanScreen';
 export { default as ProvisioningScreen } from './ProvisioningScreen';
 export { default as DeviceStatusScreen } from './DeviceStatusScreen';
+export { default as DeviceSettingsScreen } from './DeviceSettingsScreen';
 export { default as ColorPickerScreen } from './ColorPickerScreen';
 export { default as ScenesScreen } from './ScenesScreen';
 export { default as ScheduleScreen } from './ScheduleScreen';

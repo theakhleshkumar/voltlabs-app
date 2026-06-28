@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { fonts } from '../constants/theme';
 
 const SetupInstructionsScreen = ({ navigation }) => {
   const instructions = [
@@ -51,8 +52,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 40,
   },
@@ -74,11 +75,12 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   stepNumberText: {
+    fontFamily: fonts.bold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
   },
   instructionText: {
+    fontFamily: fonts.regular,
     flex: 1,
     fontSize: 16,
     lineHeight: 24,
@@ -93,9 +95,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   buttonText: {
+    fontFamily: fonts.semiBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
 });
 

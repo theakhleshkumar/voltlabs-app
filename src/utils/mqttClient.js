@@ -9,8 +9,8 @@ import mqtt from 'mqtt';
 // TODO: Move to environment variables or secure config for production
 const MQTT_CONFIG = {
   brokerUrl: 'wss://1a7b74bbff1841e78802c83a64b847aa.s1.eu.hivemq.cloud:8884/mqtt',
-  username: 'lampclient02',
-  password: 'SecurePass456',
+  username: 'voltlabs_app',
+  password: 'Voltlabsapp123@hivemqcluster',
   options: {
     clientId: `voltlabs_app_${Math.random().toString(16).substr(2, 8)}`,
     clean: true,
@@ -26,6 +26,8 @@ class MqttClient {
     this.client = null;
     this.isConnected = false;
     this.deviceStatusCallbacks = new Map(); // deviceName -> callback
+    this.deviceTopicIds = new Map(); // deviceName -> topicId ("{deviceId}/{secret}")
+    this.topicIdToDeviceName = new Map(); // topicId -> deviceName
     this.connectionCallbacks = [];
     this.reconnecting = false;
     this.connectingPromise = null; // Guard against multiple simultaneous connections
@@ -121,6 +123,23 @@ class MqttClient {
   }
 
   /**
+   * Force a fresh reconnect, tearing down the existing socket first.
+   * Needed because Android can kill a backgrounded app's socket outright
+   * without ever firing 'close', leaving isConnected stuck true on a dead link.
+   * @returns {Promise<void>}
+   */
+  reconnect() {
+    console.log('[MQTT] Forcing reconnect...');
+    this.isConnected = false;
+    this.connectingPromise = null;
+    if (this.client) {
+      this.client.end(true);
+      this.client = null;
+    }
+    return this.connect();
+  }
+
+  /**
    * Disconnect from MQTT broker
    */
   disconnect() {
@@ -130,23 +149,26 @@ class MqttClient {
       this.client = null;
       this.isConnected = false;
       this.deviceStatusCallbacks.clear();
+      this.deviceTopicIds.clear();
+      this.topicIdToDeviceName.clear();
     }
   }
 
   /**
    * Subscribe to a device's status topic
-   * @param {string} deviceName - Device name (e.g., "VoltLabs_Lamp_ABCD")
+   * @param {string} deviceName - Device name (e.g., "VoltLabs_Lamp_ABCD"), used as the local lookup key
+   * @param {string} topicId - "{deviceId}/{mqttSecret}", used to build the actual MQTT topic
    * @param {function} callback - Called with {online: boolean} when status changes
    * @returns {Promise<void>}
    */
-  subscribeToDevice(deviceName, callback) {
+  subscribeToDevice(deviceName, topicId, callback) {
     return new Promise((resolve, reject) => {
       if (!this.client || !this.isConnected) {
         reject(new Error('MQTT not connected'));
         return;
       }
 
-      const topic = `voltlabs/${deviceName}/status`;
+      const topic = `voltlabs/${topicId}/status`;
       console.log(`[MQTT] Subscribing to ${topic}`);
 
       this.client.subscribe(topic, { qos: 1 }, (error) => {
@@ -156,6 +178,8 @@ class MqttClient {
         } else {
           console.log(`[MQTT] Subscribed to ${topic}`);
           this.deviceStatusCallbacks.set(deviceName, callback);
+          this.deviceTopicIds.set(deviceName, topicId);
+          this.topicIdToDeviceName.set(topicId, deviceName);
           resolve();
         }
       });
@@ -169,11 +193,16 @@ class MqttClient {
   unsubscribeFromDevice(deviceName) {
     if (!this.client) return;
 
-    const topic = `voltlabs/${deviceName}/status`;
+    const topicId = this.deviceTopicIds.get(deviceName);
+    if (!topicId) return;
+
+    const topic = `voltlabs/${topicId}/status`;
     console.log(`[MQTT] Unsubscribing from ${topic}`);
-    
+
     this.client.unsubscribe(topic);
     this.deviceStatusCallbacks.delete(deviceName);
+    this.deviceTopicIds.delete(deviceName);
+    this.topicIdToDeviceName.delete(topicId);
   }
 
   /**
@@ -182,8 +211,8 @@ class MqttClient {
   resubscribeAll() {
     if (!this.client || !this.isConnected) return;
 
-    this.deviceStatusCallbacks.forEach((callback, deviceName) => {
-      const topic = `voltlabs/${deviceName}/status`;
+    this.deviceTopicIds.forEach((topicId, deviceName) => {
+      const topic = `voltlabs/${topicId}/status`;
       console.log(`[MQTT] Re-subscribing to ${topic}`);
       this.client.subscribe(topic, { qos: 1 });
     });
@@ -197,10 +226,11 @@ class MqttClient {
       const payload = JSON.parse(message.toString());
       console.log(`[MQTT] Message on ${topic}:`, payload);
 
-      // Extract device name from topic (voltlabs/{deviceName}/status)
+      // Topic format: voltlabs/{deviceId}/{secret}/status
       const parts = topic.split('/');
-      if (parts.length >= 2) {
-        const deviceName = parts[1];
+      if (parts.length >= 4) {
+        const topicId = `${parts[1]}/${parts[2]}`;
+        const deviceName = this.topicIdToDeviceName.get(topicId);
         const callback = this.deviceStatusCallbacks.get(deviceName);
         if (callback) {
           callback({
@@ -272,7 +302,13 @@ class MqttClient {
         return;
       }
 
-      const topic = `voltlabs/${deviceName}/command`;
+      const topicId = this.deviceTopicIds.get(deviceName);
+      if (!topicId) {
+        reject(new Error(`No topic registered for device ${deviceName}`));
+        return;
+      }
+
+      const topic = `voltlabs/${topicId}/command`;
       const payload = JSON.stringify(command);
       
       console.log(`[MQTT] Publishing to ${topic}:`, payload);

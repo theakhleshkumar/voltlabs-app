@@ -13,6 +13,7 @@ import {
 import { BleManager } from 'react-native-ble-plx';
 import { BleConnectionManager } from '../utils/bleConnectionManager';
 import { checkBlePermissions, requestBlePermissions } from '../utils/blePermissions';
+import { fonts } from '../constants/theme';
 
 const { BluetoothModule } = NativeModules;
 
@@ -604,13 +605,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   bluetoothOffTitle: {
+    fontFamily: fonts.medium,
     fontSize: 18,
-    fontWeight: '500',
     marginBottom: 12,
     textAlign: 'center',
     color: '#444',
   },
   bluetoothOffDescription: {
+    fontFamily: fonts.regular,
     fontSize: 15,
     color: '#666',
     marginBottom: 24,
@@ -626,25 +628,27 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   enableButtonText: {
+    fontFamily: fonts.semiBold,
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
     letterSpacing: 0.5,
   },
   enablingTitle: {
+    fontFamily: fonts.medium,
     fontSize: 18,
-    fontWeight: '500',
     color: '#333',
     marginTop: 16,
     marginBottom: 8,
     textAlign: 'center',
   },
   enablingSubtitle: {
+    fontFamily: fonts.regular,
     fontSize: 15,
     color: '#666',
     textAlign: 'center',
   },
   bluetoothHint: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#999',
     textAlign: 'center',
@@ -653,26 +657,28 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   scanningText: {
+    fontFamily: fonts.semiBold,
     fontSize: 18,
-    fontWeight: '600',
     marginTop: 20,
     textAlign: 'center',
   },
   hintText: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
     marginTop: 12,
     textAlign: 'center',
   },
   emptyText: {
+    fontFamily: fonts.regular,
     fontSize: 18,
     color: '#666',
     marginBottom: 24,
     textAlign: 'center',
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 20,
-    fontWeight: 'bold',
     marginBottom: 16,
   },
   listContent: {
@@ -687,11 +693,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   deviceName: {
+    fontFamily: fonts.semiBold,
     fontSize: 16,
-    fontWeight: '600',
     marginBottom: 4,
   },
   deviceId: {
+    fontFamily: fonts.regular,
     fontSize: 12,
     color: '#666',
   },
@@ -703,22 +710,23 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   retryButtonText: {
+    fontFamily: fonts.semiBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
   errorIcon: {
     fontSize: 64,
     marginBottom: 24,
   },
   errorTitle: {
+    fontFamily: fonts.bold,
     fontSize: 20,
-    fontWeight: 'bold',
     marginBottom: 12,
     textAlign: 'center',
     color: '#d32f2f',
   },
   errorText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: '#666',
     marginBottom: 32,

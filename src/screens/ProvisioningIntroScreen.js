@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { fonts } from '../constants/theme';
 
 const ProvisioningIntroScreen = ({ navigation }) => {
   const bulletPoints = [
@@ -53,12 +54,13 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 16,
   },
   description: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
@@ -75,12 +77,14 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   bulletDot: {
+    fontFamily: fonts.regular,
     fontSize: 20,
     color: '#000',
     marginRight: 12,
     lineHeight: 24,
   },
   bulletText: {
+    fontFamily: fonts.regular,
     flex: 1,
     fontSize: 16,
     color: '#333',
@@ -94,9 +98,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   buttonText: {
+    fontFamily: fonts.semiBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
 });
 

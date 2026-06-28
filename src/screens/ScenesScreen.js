@@ -10,9 +10,11 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useDeviceStatus } from '../hooks/useDeviceStatus';
+import { colors, fonts } from '../constants/theme';
 
 // Preset scenes with their configurations
 const PRESET_SCENES = [
@@ -114,7 +116,7 @@ const EFFECTS = [
 
 const ScenesScreen = ({ route }) => {
   const { deviceName } = route.params || {};
-  const { isOnline, sendCommand } = useDeviceStatus(deviceName);
+  const { isOnline, isConnecting, sendCommand } = useDeviceStatus(deviceName);
   
   const [activeScene, setActiveScene] = useState(null);
   const [activeEffect, setActiveEffect] = useState(null);
@@ -167,11 +169,22 @@ const ScenesScreen = ({ route }) => {
     }
   };
 
+  if (isConnecting) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.disabledContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.disabledText}>Syncing device status...</Text>
+        </View>
+      </View>
+    );
+  }
+
   if (!isEnabled) {
     return (
       <View style={styles.container}>
         <View style={styles.disabledContainer}>
-          <Icon name="lightbulb-group" size={80} color="#9CA3AF" />
+          <Icon name="lightbulb-group" size={80} color={colors.textPlaceholder} />
           <Text style={styles.disabledTitle}>Scenes</Text>
           <Text style={styles.disabledText}>
             Device offline - controls disabled
@@ -290,7 +303,7 @@ const ScenesScreen = ({ route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.surface,
   },
   scrollView: {
     flex: 1,
@@ -306,14 +319,15 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   disabledTitle: {
+    fontFamily: fonts.bold,
     fontSize: 28,
-    fontWeight: '700',
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     marginTop: 16,
   },
   disabledText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -322,14 +336,15 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
+    fontFamily: fonts.bold,
     fontSize: 22,
-    fontWeight: '700',
-    color: '#374151',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   sectionSubtitle: {
+    fontFamily: fonts.regular,
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textMuted,
     marginBottom: 16,
   },
   // Scenes grid
@@ -364,17 +379,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sceneName: {
+    fontFamily: fonts.semiBold,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   sceneNameActive: {
     color: '#10B981',
   },
   sceneDescription: {
+    fontFamily: fonts.regular,
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
   },
   activeIndicator: {
     position: 'absolute',
@@ -421,17 +437,18 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   effectName: {
+    fontFamily: fonts.semiBold,
     fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   effectNameActive: {
     color: '#fff',
   },
   effectDescription: {
+    fontFamily: fonts.regular,
     fontSize: 10,
-    color: '#9CA3AF',
+    color: colors.textPlaceholder,
     textAlign: 'center',
     marginTop: 2,
   },
@@ -447,8 +464,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   stopButtonText: {
+    fontFamily: fonts.semiBold,
     fontSize: 16,
-    fontWeight: '600',
     color: '#EF4444',
   },
 });

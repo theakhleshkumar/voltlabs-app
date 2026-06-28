@@ -9,8 +9,11 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../services/api';
 import { useDeviceStatus } from '../context/DeviceStatusContext';
+import { colors, fonts } from '../constants/theme';
 
 const HomeScreen = ({ navigation }) => {
   const [devices, setDevices] = useState([]);
@@ -114,7 +117,11 @@ const HomeScreen = ({ navigation }) => {
           deviceName: item.name,
         })}>
         <View style={styles.deviceIconContainer}>
-          <Text style={styles.deviceIcon}>💡</Text>
+          <Icon
+            name={isLit ? 'lightbulb-on' : 'lightbulb-outline'}
+            size={36}
+            color={isLit ? colors.primary : colors.textMuted}
+          />
           <View style={[
             styles.statusDot,
             isLit ? styles.statusOnline : styles.statusOffline
@@ -122,7 +129,6 @@ const HomeScreen = ({ navigation }) => {
         </View>
         <View style={styles.deviceInfo}>
           <Text style={styles.deviceName}>{item.name}</Text>
-          <Text style={styles.deviceId}>{item.deviceId}</Text>
           <Text style={[
             styles.deviceStatus,
             isLit ? styles.statusTextOnline : styles.statusTextOffline
@@ -137,7 +143,7 @@ const HomeScreen = ({ navigation }) => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyStateContainer}>
-      <Text style={styles.emptyIcon}>🏠</Text>
+      <Icon name="lightbulb-off-outline" size={80} color={colors.border} style={styles.emptyIcon} />
       <Text style={styles.emptyHeading}>No devices added yet</Text>
       <Text style={styles.emptyText}>
         Add your first VoltLabs device to get started.
@@ -145,14 +151,14 @@ const HomeScreen = ({ navigation }) => {
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => navigation.navigate('AddDevice')}>
-        <Text style={styles.addButtonText}>+ Add Device</Text>
+        <Text style={styles.addButtonText}>+ Add New Device</Text>
       </TouchableOpacity>
     </View>
   );
 
   if (loading && devices.length === 0) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <Image
             source={require('../assets/images/volt_labs_composite_logo.png')}
@@ -161,34 +167,21 @@ const HomeScreen = ({ navigation }) => {
           />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Loading devices...</Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Image
           source={require('../assets/images/volt_labs_composite_logo.png')}
           style={styles.logo}
           resizeMode="contain"
         />
-        <TouchableOpacity
-          style={styles.accountIconButton}
-          onPress={() => navigation.navigate('Account')}>
-          <Text style={styles.accountIconText}>👤</Text>
-        </TouchableOpacity>
-
-        {devices.length > 0 && (
-          <TouchableOpacity
-            style={styles.addIconButton}
-            onPress={() => navigation.navigate('AddDevice')}>
-            <Text style={styles.addIconText}>+</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {error ? (
@@ -210,15 +203,22 @@ const HomeScreen = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => fetchDevices(true)}
-              tintColor="#000"
+              tintColor={colors.primary}
             />
           }
           ListHeaderComponent={
             <Text style={styles.sectionTitle}>My Devices</Text>
           }
+          ListFooterComponent={
+            <TouchableOpacity
+              style={styles.addDeviceButton}
+              onPress={() => navigation.navigate('AddDevice')}>
+              <Text style={styles.addDeviceButtonText}>+ Add New Device</Text>
+            </TouchableOpacity>
+          }
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -239,43 +239,16 @@ const styles = StyleSheet.create({
     width: 150,
     height: 50,
   },
-  addIconButton: {
-    position: 'absolute',
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addIconText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: '300',
-    marginTop: -2,
-  },
-  accountIconButton: {
-    position: 'absolute',
-    left: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  accountIconText: {
-    fontSize: 20,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
+    fontFamily: fonts.regular,
     marginTop: 16,
     fontSize: 16,
-    color: '#666',
+    color: colors.textMuted,
   },
   errorContainer: {
     flex: 1,
@@ -284,28 +257,41 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   errorText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
-    color: '#dc2626',
+    color: colors.error,
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: '#000',
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
   },
   retryButtonText: {
-    color: '#fff',
+    fontFamily: fonts.semiBold,
+    color: colors.dark,
     fontSize: 14,
-    fontWeight: '600',
   },
   listContainer: {
     padding: 16,
   },
   sectionTitle: {
+    fontFamily: fonts.bold,
     fontSize: 20,
-    fontWeight: 'bold',
     marginBottom: 16,
+  },
+  addDeviceButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  addDeviceButtonText: {
+    fontFamily: fonts.semiBold,
+    color: colors.dark,
+    fontSize: 16,
   },
   deviceCard: {
     flexDirection: 'row',
@@ -318,9 +304,6 @@ const styles = StyleSheet.create({
   deviceIconContainer: {
     position: 'relative',
     marginRight: 16,
-  },
-  deviceIcon: {
-    fontSize: 40,
   },
   statusDot: {
     position: 'absolute',
@@ -336,34 +319,30 @@ const styles = StyleSheet.create({
     backgroundColor: '#22c55e',
   },
   statusOffline: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: colors.textPlaceholder,
   },
   deviceInfo: {
     flex: 1,
   },
   deviceName: {
+    fontFamily: fonts.semiBold,
     fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  deviceId: {
-    fontSize: 12,
-    color: '#666',
     marginBottom: 4,
   },
   deviceStatus: {
+    fontFamily: fonts.medium,
     fontSize: 14,
-    fontWeight: '500',
   },
   statusTextOnline: {
     color: '#22c55e',
   },
   statusTextOffline: {
-    color: '#9ca3af',
+    color: colors.textPlaceholder,
   },
   chevron: {
+    fontFamily: fonts.regular,
     fontSize: 24,
-    color: '#999',
+    color: colors.textPlaceholder,
     marginLeft: 8,
   },
   emptyStateContainer: {
@@ -373,32 +352,32 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyIcon: {
-    fontSize: 64,
     marginBottom: 24,
   },
   emptyHeading: {
+    fontFamily: fonts.bold,
     fontSize: 22,
-    fontWeight: 'bold',
     marginBottom: 12,
     textAlign: 'center',
   },
   emptyText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
-    color: '#666',
+    color: colors.textMuted,
     textAlign: 'center',
     marginBottom: 32,
     lineHeight: 24,
   },
   addButton: {
-    backgroundColor: '#000',
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 8,
   },
   addButtonText: {
-    color: '#fff',
+    fontFamily: fonts.semiBold,
+    color: colors.dark,
     fontSize: 16,
-    fontWeight: '600',
   },
 });
 

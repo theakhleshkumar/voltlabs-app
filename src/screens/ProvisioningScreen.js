@@ -13,6 +13,7 @@ import {
 import { BleConnectionManager } from '../utils/bleConnectionManager';
 import { Buffer } from 'buffer';
 import api from '../services/api';
+import { fonts } from '../constants/theme';
 
 // BLE Service and Characteristic UUIDs (aligned with ESP32 NimBLE firmware)
 // Service UUID for Nordic UART Service (NUS)
@@ -151,6 +152,7 @@ const ProvisioningScreen = ({ route, navigation }) => {
       const currentSsid = ssid.trim();
       const currentDeviceId = deviceId;
       const currentDeviceName = deviceName;
+      const currentMqttSecret = status.mqttSecret;
 
       // Register device with backend and navigate
       setTimeout(async () => {
@@ -159,17 +161,17 @@ const ProvisioningScreen = ({ route, navigation }) => {
             console.log('Already navigated away, skipping');
             return;
           }
-          
+
           hasNavigatedAwayRef.current = true; // Mark that we're navigating
           console.log('Registering device with backend...');
-          
+
           // Register device with backend
           try {
             const wifiInfo = {
               ssid: currentSsid,
               provisionedAt: new Date().toISOString(),
             };
-            const response = await api.registerDevice(currentDeviceId, currentDeviceName, wifiInfo);
+            const response = await api.registerDevice(currentDeviceId, currentDeviceName, wifiInfo, currentMqttSecret);
             console.log('Device registered:', response);
           } catch (regError) {
             console.log('Device registration error (non-blocking):', regError.message);
@@ -185,12 +187,12 @@ const ProvisioningScreen = ({ route, navigation }) => {
           
           // Navigate to Home instead of DeviceStatus to avoid MQTT issues
           console.log('Navigating to Home...');
-          navigation.replace('Home');
+          navigation.replace('Main', { screen: 'Home' });
         } catch (navError) {
           console.error('Navigation error:', navError);
           // Fallback navigation
           try {
-            navigation.navigate('Home');
+            navigation.navigate('Main', { screen: 'Home' });
           } catch (e) {
             console.error('Fallback navigation also failed:', e);
           }
@@ -245,11 +247,11 @@ const ProvisioningScreen = ({ route, navigation }) => {
             console.log('Clear device error:', clearError.message);
           }
           
-          navigation.replace('Home');
+          navigation.replace('Main', { screen: 'Home' });
         } catch (navError) {
           console.error('Navigation error (legacy):', navError);
           try {
-            navigation.navigate('Home');
+            navigation.navigate('Main', { screen: 'Home' });
           } catch (e) {
             console.error('Fallback navigation failed:', e);
           }
@@ -673,12 +675,13 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   title: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: 'bold',
     marginTop: 20,
     marginBottom: 8,
   },
   subtitle: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: '#666',
     marginBottom: 32,
@@ -688,12 +691,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   label: {
+    fontFamily: fonts.semiBold,
     fontSize: 16,
-    fontWeight: '600',
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
+    fontFamily: fonts.regular,
     borderWidth: 1,
     borderColor: '#ddd',
     borderRadius: 8,
@@ -726,9 +730,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ccc',
   },
   buttonText: {
+    fontFamily: fonts.semiBold,
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
   },
   cancelButton: {
     backgroundColor: '#666',
@@ -744,6 +748,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   securityNote: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#999',
     marginTop: 32,
@@ -751,12 +756,13 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   provisioningTitle: {
+    fontFamily: fonts.semiBold,
     fontSize: 20,
-    fontWeight: '600',
     marginTop: 20,
     textAlign: 'center',
   },
   provisioningHint: {
+    fontFamily: fonts.regular,
     fontSize: 14,
     color: '#666',
     marginTop: 12,
@@ -769,13 +775,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   successTitle: {
+    fontFamily: fonts.bold,
     fontSize: 24,
-    fontWeight: 'bold',
     marginBottom: 12,
     textAlign: 'center',
     color: '#4caf50',
   },
   successText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
@@ -786,13 +793,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   errorTitle: {
+    fontFamily: fonts.bold,
     fontSize: 20,
-    fontWeight: 'bold',
     marginBottom: 12,
     textAlign: 'center',
     color: '#d32f2f',
   },
   errorText: {
+    fontFamily: fonts.regular,
     fontSize: 16,
     color: '#666',
     marginBottom: 32,
