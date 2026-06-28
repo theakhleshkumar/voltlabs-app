@@ -5,6 +5,7 @@
 
 const crypto = require('crypto');
 const User = require('../models/User');
+const Device = require('../models/Device');
 const twilioService = require('../services/twilioService');
 const { generateAccessToken, generateRefreshToken, verifyToken } = require('../middleware/auth');
 
@@ -42,6 +43,10 @@ const sendOtp = async (req, res) => {
     let user = await User.findOne({ phone });
     if (!user) {
       user = new User({ phone });
+    }
+
+    if (user.status === 'pending_deletion') {
+      return res.status(403).json({ error: 'This account has been deleted' });
     }
 
     // Google Play reviewer test account: fixed OTP, no SMS sent, never expires
@@ -115,6 +120,10 @@ const verifyOtp = async (req, res) => {
     const user = await User.findOne({ phone });
     if (!user) {
       return res.status(400).json({ error: 'Invalid phone number' });
+    }
+
+    if (user.status === 'pending_deletion') {
+      return res.status(403).json({ error: 'This account has been deleted' });
     }
 
     // Validate OTP
@@ -382,6 +391,92 @@ const logout = async (req, res) => {
 };
 
 /**
+ * Request account deletion - sends an OTP to confirm intent.
+ * The account isn't touched until the OTP is confirmed.
+ * POST /api/auth/request-account-deletion
+ */
+const requestAccountDeletion = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const otp = twilioService.generateOtp();
+    user.otp = {
+      code: otp,
+      expiresAt: twilioService.getExpiryDate(),
+      attempts: 0,
+    };
+    await user.save();
+
+    const result = await twilioService.sendOtp(user.phone, otp);
+    if (!result.success) {
+      return res.status(500).json({ error: 'Failed to send OTP' });
+    }
+
+    const response = {
+      success: true,
+      message: 'OTP sent to confirm account deletion',
+      expiresIn: twilioService.otpExpiryMinutes * 60,
+    };
+    if (result.devMode && result.otp) {
+      response.devOtp = result.otp;
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error('Request account deletion error:', error);
+    res.status(500).json({ error: 'Failed to request account deletion' });
+  }
+};
+
+/**
+ * Confirm account deletion with OTP.
+ * Deletes the user's devices immediately, marks the account pending_deletion,
+ * and signs the user out everywhere. The account record itself is permanently
+ * purged 30 days later by the scheduled cleanup job in server.js.
+ * POST /api/auth/confirm-account-deletion
+ */
+const confirmAccountDeletion = async (req, res) => {
+  try {
+    const { otp } = req.body;
+    if (!otp) {
+      return res.status(400).json({ error: 'OTP is required' });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const validation = user.isOtpValid(otp);
+    if (!validation.valid) {
+      await user.save(); // Save incremented attempts
+      return res.status(400).json({ error: validation.reason });
+    }
+
+    await Device.deleteMany({ owner: user._id });
+
+    user.otp = undefined;
+    user.devices = [];
+    user.refreshTokens = [];
+    user.trustedDevices = [];
+    user.status = 'pending_deletion';
+    user.deletionRequestedAt = new Date();
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Account scheduled for deletion',
+    });
+  } catch (error) {
+    console.error('Confirm account deletion error:', error);
+    res.status(500).json({ error: 'Failed to confirm account deletion' });
+  }
+};
+
+/**
  * Get current user profile
  * GET /api/auth/me
  */
@@ -449,4 +544,6 @@ module.exports = {
   logout,
   getProfile,
   updateProfile,
+  requestAccountDeletion,
+  confirmAccountDeletion,
 };

@@ -14,6 +14,8 @@ const {
   logout,
   getProfile,
   updateProfile,
+  requestAccountDeletion,
+  confirmAccountDeletion,
 } = require('../controllers/authController');
 
 // Public routes
@@ -26,5 +28,7 @@ router.post('/refresh-token', refreshAccessToken);
 router.post('/logout', authMiddleware, logout);
 router.get('/me', authMiddleware, getProfile);
 router.patch('/me', authMiddleware, updateProfile);
+router.post('/request-account-deletion', authMiddleware, requestAccountDeletion);
+router.post('/confirm-account-deletion', authMiddleware, confirmAccountDeletion);
 
 module.exports = router;

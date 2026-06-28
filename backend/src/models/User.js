@@ -52,6 +52,12 @@ const userSchema = new mongoose.Schema({
     ref: 'Device',
   }],
   lastLogin: Date,
+  status: {
+    type: String,
+    enum: ['active', 'pending_deletion'],
+    default: 'active',
+  },
+  deletionRequestedAt: Date,
   createdAt: {
     type: Date,
     default: Date.now,

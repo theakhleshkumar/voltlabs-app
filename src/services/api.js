@@ -12,9 +12,10 @@ const API_CONFIG = {
   // Local dev server (physical device on same LAN): 'http://YOUR_LOCAL_IP:3000/api'
   // Android emulator only: 'http://10.0.2.2:3000/api'
   baseUrl: __DEV__
-    ? 'http://192.168.1.4:3000/api'
-    : 'https://api.voltlabs.com/api', // TODO: update once production backend is deployed
-  timeout: 10000,
+    ? 'http://192.168.1.5:3000/api'
+    : 'https://voltlabs-app.onrender.com/api',
+  // 30s to tolerate Render free-tier cold starts on the production backend
+  timeout: 30000,
 };
 
 // Token storage keys
@@ -309,6 +310,25 @@ class ApiService {
   }
 
   /**
+   * Request account deletion - sends an OTP to confirm intent
+   */
+  async requestAccountDeletion() {
+    return this.request('/auth/request-account-deletion', {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Confirm account deletion with the OTP sent by requestAccountDeletion()
+   */
+  async confirmAccountDeletion(otp) {
+    return this.request('/auth/confirm-account-deletion', {
+      method: 'POST',
+      body: { otp },
+    });
+  }
+
+  /**
    * Logout
    */
   async logout() {
@@ -360,10 +380,10 @@ class ApiService {
   /**
    * Register a new device
    */
-  async registerDevice(deviceId, name, wifi) {
+  async registerDevice(deviceId, name, wifi, mqttSecret) {
     return this.request('/devices', {
       method: 'POST',
-      body: { deviceId, name, wifi },
+      body: { deviceId, name, wifi, mqttSecret },
     });
   }
 
