@@ -74,9 +74,18 @@ export const DeviceStatusProvider = ({ children }) => {
   // Subscribe to a device's status
   // topicId = "{deviceId}/{mqttSecret}", used to build the actual MQTT topic
   const subscribeToDevice = useCallback(async (deviceName, topicId) => {
-    if (subscribedDevicesRef.current.has(deviceName)) {
+    // If already subscribed to this exact topic, nothing to do
+    const activeTopicId = mqttClient.deviceTopicIds.get(deviceName);
+    if (subscribedDevicesRef.current.has(deviceName) && activeTopicId === topicId) {
       console.log(`[DeviceStatusContext] Already subscribed to ${deviceName}`);
       return;
+    }
+
+    // TopicId changed (new MQTT secret after factory reset) — unsubscribe old topic first
+    if (subscribedDevicesRef.current.has(deviceName) && activeTopicId !== topicId) {
+      console.log(`[DeviceStatusContext] Topic changed for ${deviceName}, resubscribing...`);
+      mqttClient.unsubscribeFromDevice(deviceName);
+      subscribedDevicesRef.current.delete(deviceName);
     }
 
     // Ensure MQTT is connected
