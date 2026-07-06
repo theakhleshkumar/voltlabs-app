@@ -12,7 +12,7 @@ const API_CONFIG = {
   // Local dev server (physical device on same LAN): 'http://YOUR_LOCAL_IP:3000/api'
   // Android emulator only: 'http://10.0.2.2:3000/api'
   baseUrl: __DEV__
-    ? 'http://192.168.1.5:3000/api'
+    ? 'http://192.168.1.11:3000/api'
     : 'https://voltlabs-app.onrender.com/api',
   // 30s to tolerate Render free-tier cold starts on the production backend
   timeout: 30000,
