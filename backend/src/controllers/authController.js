@@ -45,10 +45,6 @@ const sendOtp = async (req, res) => {
       user = new User({ phone });
     }
 
-    if (user.status === 'pending_deletion') {
-      return res.status(403).json({ error: 'This account has been deleted' });
-    }
-
     // Google Play reviewer test account: fixed OTP, no SMS sent, never expires
     const isReviewAccount = phone === process.env.REVIEW_TEST_PHONE;
 
@@ -122,10 +118,6 @@ const verifyOtp = async (req, res) => {
       return res.status(400).json({ error: 'Invalid phone number' });
     }
 
-    if (user.status === 'pending_deletion') {
-      return res.status(403).json({ error: 'This account has been deleted' });
-    }
-
     // Validate OTP
     const validation = user.isOtpValid(otp);
     if (!validation.valid) {
@@ -137,6 +129,12 @@ const verifyOtp = async (req, res) => {
     user.otp = undefined;
     user.phoneVerified = true;
     user.lastLogin = new Date();
+
+    // Reactivate if the user had previously requested deletion (within the 30-day grace period)
+    if (user.status === 'pending_deletion') {
+      user.status = 'active';
+      user.deletionRequestedAt = undefined;
+    }
 
     // Handle trusted device registration
     const { deviceId, deviceName, platform } = req.body;
