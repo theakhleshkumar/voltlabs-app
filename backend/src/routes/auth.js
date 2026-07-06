@@ -4,6 +4,7 @@
  */
 
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
 const {
@@ -18,11 +19,18 @@ const {
   confirmAccountDeletion,
 } = require('../controllers/authController');
 
+// Strict rate limit for unauthenticated OTP endpoints only
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many requests, please try again later' },
+});
+
 // Public routes
-router.post('/send-otp', sendOtp);
-router.post('/verify-otp', verifyOtp);
-router.post('/device-login', deviceLogin);
-router.post('/refresh-token', refreshAccessToken);
+router.post('/send-otp', otpLimiter, sendOtp);
+router.post('/verify-otp', otpLimiter, verifyOtp);
+router.post('/device-login', otpLimiter, deviceLogin);
+router.post('/refresh-token', otpLimiter, refreshAccessToken);
 
 // Protected routes
 router.post('/logout', authMiddleware, logout);

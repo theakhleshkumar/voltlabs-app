@@ -8,7 +8,6 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const express = require('express');
 const cors = require('cors');
-const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const User = require('./models/User');
 
@@ -25,20 +24,13 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 
-// Rate limiting for auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 requests per window per IP
-  message: { error: 'Too many requests, please try again later' },
-});
-
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 // Routes
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api/devices', deviceRoutes);
 
 // Error handling middleware
